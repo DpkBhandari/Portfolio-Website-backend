@@ -28,7 +28,7 @@ app.use(
   cors({
     origin: [
       process.env.CLIENT_URL,
-      "https://portfolio-website-gold-xi.vercel.app/",
+      "https://portfolio-website-gold-xi.vercel.app",
     ],
     credentials: true,
   })
