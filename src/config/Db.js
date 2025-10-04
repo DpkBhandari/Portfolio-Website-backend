@@ -1,23 +1,41 @@
 import mongoose from "mongoose";
 
-let cached = global.mongoose;
-
-if (!cached) cached = global.mongoose = { conn: null, promise: null };
-
 async function connectDB(mongo_url) {
-  if (cached.conn) return cached.conn;
+  const connectWithRetry = async () => {
+    try {
+      await mongoose.connect(mongo_url);
+      console.log("✅ MongoDB Connected");
+    } catch (err) {
+      console.error("🚫 MongoDB connection failed, retrying in 5s...", err);
+      setTimeout(connectWithRetry, 5000);
+    }
+  };
 
-  if (!cached.promise) {
-    cached.promise = mongoose
-      .connect(mongo_url, {
-        useNewUrlParser: true,
-        useUnifiedTopology: true,
-      })
-      .then((mongoose) => mongoose);
-  }
+  connectWithRetry();
 
-  cached.conn = await cached.promise;
-  return cached.conn;
+  mongoose.connection.on("connected", () => {
+    console.log("MongoDB connection established ✅");
+  });
+
+  mongoose.connection.on("disconnected", () => {
+    console.warn("⚠️ MongoDB disconnected. Trying to reconnect...");
+  });
+
+  mongoose.connection.on("error", (err) => {
+    console.error(`🚨 MongoDB error: ${err.message}`);
+  });
+
+  process.on("SIGINT", async () => {
+    await mongoose.connection.close();
+    console.log("MongoDB connection closed due to app termination");
+    process.exit(0);
+  });
+
+  process.on("SIGTERM", async () => {
+    await mongoose.connection.close();
+    console.log("MongoDB connection closed due to app termination");
+    process.exit(0);
+  });
 }
 
 export default connectDB;

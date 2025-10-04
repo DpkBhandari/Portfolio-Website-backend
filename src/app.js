@@ -14,22 +14,29 @@ import ExperienceRoutes from "./Routes/experience.routes.js";
 
 const app = express();
 
-// ✅ Rate Limiting
 app.use(limiter);
 
 // ✅ Security
 app.use(helmet({ contentSecurityPolicy: false }));
 
-// ✅ Logging
-if (process.env.NODE_ENV === "development") app.use(morgan("dev"));
+// ✅ Logging (dev only)
+if (process.env.PHASE === "development") app.use(morgan("dev"));
 
 // ✅ CORS Configuration
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "*", // allow Vercel + localhost
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );
+
+// app.use(
+//   cors({
+//     origin: process.env.CLIENT_URL || "http://localhost:5173",
+//     credentials: true,
+//   })
+// );
 
 // ✅ Body Parsers
 app.use(express.json({ limit: "10kb" }));
@@ -39,14 +46,20 @@ app.use(cookieParser());
 // ✅ Routes Base Testing
 app.get("/", (req, res) => sendResponse(res, 200, "Server is running!"));
 
-// ✅ Routes
+// Login and register
 app.use("/api/admin", AdminRoutes);
-app.use("/api/projects", ProjectRoutes);
+
+//Project Routes
+app.use("/api/", ProjectRoutes);
+
+//Home Routes
 app.use("/api/home", HomeRoutes);
+
+// Experience Routes
 app.use("/api/experience", ExperienceRoutes);
 
 // ✅ Catch-all 404
-app.all("*", (req, res) => sendResponse(res, 404, "Page doesn't exist"));
+app.get((req, res) => sendResponse(res, 404, "Page doesn't exist"));
 
 // ✅ Global Error Handler
 app.use(GlobalErrorHandler);
