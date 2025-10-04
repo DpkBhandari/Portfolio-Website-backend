@@ -5,13 +5,17 @@ import {
 import { sendResponse } from "../utils/sendResponse.js";
 import { hashing, compare } from "../utils/helpers.js";
 import User from "../Model/user.model.js";
-import { generateToken, generateRefreshToken } from "../utils/jwtToken.js";
+import {
+  generateToken,
+  generateRefreshToken,
+  verifyRefreshToken,
+} from "../utils/jwtToken.js";
 
-// Constants for better maintainability
 const COOKIE_OPTIONS = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
-  sameSite: process.env.NODE_ENV === "production" ? "strict" : "lax",
+  sameSite: process.env.NODE_ENV === "production" ? "none" : "lax", // Changed from "strict" to "none" for cross-origin
+  path: "/",
 };
 
 const TOKEN_EXPIRY = {
@@ -39,7 +43,7 @@ export async function registerUser(req, res, next) {
     // Check if user already exists
     const existingUser = await User.findOne({ email }).lean();
     if (existingUser) {
-      return sendResponse(res, 409, "User already exists"); // 409 Conflict
+      return sendResponse(res, 409, "User already exists");
     }
 
     // Hash password
@@ -56,6 +60,7 @@ export async function registerUser(req, res, next) {
     return sendResponse(res, 201, "Admin registered successfully", {
       user: {
         id: newUser._id,
+        name: newUser.name,
         email: newUser.email,
         role: newUser.role,
         createdAt: newUser.createdAt,
@@ -100,8 +105,15 @@ export async function loginUser(req, res, next) {
       return sendResponse(res, 401, "Invalid credentials");
     }
 
-    const accessToken = generateToken(user);
-    const refreshToken = generateRefreshToken(user);
+    // Create user payload for tokens
+    const userPayload = {
+      id: user._id.toString(),
+      email: user.email,
+      role: user.role,
+    };
+
+    const accessToken = generateToken(userPayload);
+    const refreshToken = generateRefreshToken(userPayload);
 
     // Set secure cookies
     res.cookie("accessToken", accessToken, {
@@ -127,11 +139,12 @@ export async function loginUser(req, res, next) {
     return sendResponse(res, 200, "Login successful", {
       user: {
         id: user._id,
+        name: user.name,
         email: user.email,
         role: user.role,
         lastLogin: new Date(),
       },
-      // Only return tokens in development for debugging
+      // Return tokens for development/debugging
       ...(process.env.NODE_ENV === "development" && {
         tokens: {
           accessToken,
@@ -182,7 +195,7 @@ export async function refreshToken(req, res, next) {
       return sendResponse(res, 401, "Refresh token not provided");
     }
 
-    // Verify refresh token (implement this in your JWT utils)
+    // Verify refresh token
     const decoded = verifyRefreshToken(refreshToken);
     if (!decoded) {
       return sendResponse(res, 401, "Invalid refresh token");
@@ -194,9 +207,9 @@ export async function refreshToken(req, res, next) {
       return sendResponse(res, 401, "User not found or unauthorized");
     }
 
-    // Generate new access token
+    // Generate new access token with consistent payload structure
     const userPayload = {
-      id: user._id,
+      id: user._id.toString(),
       email: user.email,
       role: user.role,
     };
@@ -243,6 +256,7 @@ export async function getUserProfile(req, res, next) {
     return sendResponse(res, 200, "Profile retrieved successfully", {
       user: {
         id: user._id,
+        name: user.name,
         email: user.email,
         role: user.role,
         createdAt: user.createdAt,
@@ -268,6 +282,15 @@ export async function changePasswordByEmail(req, res, next) {
       return sendResponse(res, 400, "Email and newPassword are required");
     }
 
+    // Validate password length
+    if (newPassword.length < 8) {
+      return sendResponse(
+        res,
+        400,
+        "Password must be at least 8 characters long"
+      );
+    }
+
     const user = await User.findOne({ email: email.toLowerCase() });
     if (!user) {
       return sendResponse(res, 404, "User not found");
@@ -281,6 +304,7 @@ export async function changePasswordByEmail(req, res, next) {
     );
     return sendResponse(res, 200, "Password changed successfully");
   } catch (error) {
+    console.error("Change password error:", error);
     return next(error);
   }
 }
