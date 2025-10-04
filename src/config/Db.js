@@ -1,4 +1,3 @@
-// Db.js for serverless
 import mongoose from "mongoose";
 
 let cached = global.mongoose;
