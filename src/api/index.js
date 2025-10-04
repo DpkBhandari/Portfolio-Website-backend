@@ -12,7 +12,7 @@ export default async function handler(req, res) {
     // Pass the request to Express
     app(req, res);
   } catch (err) {
-    console.error(err);
+    console.error("MongoDB / Express Error:", err);
     res.status(500).json({ error: "Internal Server Error" });
   }
 }
