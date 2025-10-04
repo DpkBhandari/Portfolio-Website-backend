@@ -65,3 +65,4 @@ tmp/
 *.bak
 *.tmp
 *.swp
+.vercel

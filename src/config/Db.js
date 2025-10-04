@@ -1,41 +1,37 @@
 import mongoose from "mongoose";
 
+let cached = global.mongoose; // use global to cache across function calls
+
+if (!cached) {
+  cached = global.mongoose = { conn: null, promise: null };
+}
+
 async function connectDB(mongo_url) {
-  const connectWithRetry = async () => {
-    try {
-      await mongoose.connect(mongo_url);
-      console.log("✅ MongoDB Connected");
-    } catch (err) {
-      console.error("🚫 MongoDB connection failed, retrying in 5s...", err);
-      setTimeout(connectWithRetry, 5000);
-    }
-  };
+  if (cached.conn) {
+    // Return existing connection
+    return cached.conn;
+  }
 
-  connectWithRetry();
+  if (!cached.promise) {
+    cached.promise = mongoose
+      .connect(mongo_url, {
+        // options
+        useNewUrlParser: true,
+        useUnifiedTopology: true,
+        dbName: "YOUR_DB_NAME", // replace with your DB name
+      })
+      .then((mongoose) => {
+        console.log("✅ MongoDB Connected");
+        return mongoose;
+      })
+      .catch((err) => {
+        console.error("🚫 MongoDB connection failed", err);
+        throw err;
+      });
+  }
 
-  mongoose.connection.on("connected", () => {
-    console.log("MongoDB connection established ✅");
-  });
-
-  mongoose.connection.on("disconnected", () => {
-    console.warn("⚠️ MongoDB disconnected. Trying to reconnect...");
-  });
-
-  mongoose.connection.on("error", (err) => {
-    console.error(`🚨 MongoDB error: ${err.message}`);
-  });
-
-  process.on("SIGINT", async () => {
-    await mongoose.connection.close();
-    console.log("MongoDB connection closed due to app termination");
-    process.exit(0);
-  });
-
-  process.on("SIGTERM", async () => {
-    await mongoose.connection.close();
-    console.log("MongoDB connection closed due to app termination");
-    process.exit(0);
-  });
+  cached.conn = await cached.promise;
+  return cached.conn;
 }
 
 export default connectDB;
