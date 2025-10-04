@@ -7,12 +7,12 @@ import {
 
 import { authenticate } from "../Middleware/authVerifier.js";
 
-const router = express.Router();
+const HomeRoutes = express.Router();
 
-router.get("/", getHome);
+HomeRoutes.get("/", getHome);
 
-router.post("/", authenticate, createHome);
+HomeRoutes.post("/", authenticate, createHome);
 
-router.put("/:id", authenticate, updateHome);
+HomeRoutes.put("/:id", authenticate, updateHome);
 
-export default router;
+export default HomeRoutes;

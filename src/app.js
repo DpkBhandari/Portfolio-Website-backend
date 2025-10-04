@@ -26,7 +26,10 @@ if (process.env.PHASE === "development") app.use(morgan("dev"));
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      process.env.CLIENT_URL,
+      "https://portfolio-website-frontend-lake.vercel.app",
+    ],
     credentials: true,
   })
 );

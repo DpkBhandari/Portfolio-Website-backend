@@ -53,11 +53,6 @@ export async function registerUser(req, res, next) {
       role: "admin",
     });
 
-    // Log successful registration (exclude sensitive data)
-    console.log(
-      `New admin registered: ${newUser.email} at ${new Date().toISOString()}`
-    );
-
     return sendResponse(res, 201, "Admin registered successfully", {
       user: {
         id: newUser._id,
@@ -104,13 +99,6 @@ export async function loginUser(req, res, next) {
     if (!isPasswordValid) {
       return sendResponse(res, 401, "Invalid credentials");
     }
-
-    // // Generate tokens
-    // const userPayload = {
-    //   id: user._id,
-    //   email: user.email,
-    //   role: user.role,
-    // };
 
     const accessToken = generateToken(user);
     const refreshToken = generateRefreshToken(user);
