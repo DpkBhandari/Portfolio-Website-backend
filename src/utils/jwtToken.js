@@ -34,3 +34,12 @@ export function generateRefreshToken(user) {
     { expiresIn: "7d" }
   );
 }
+
+export function verifyRefreshToken(token) {
+  try {
+    const decoded = jwt.verify(token, secret);
+    return { valid: true, decoded };
+  } catch (error) {
+    return { valid: false, error: error.message };
+  }
+}
