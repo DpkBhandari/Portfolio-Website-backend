@@ -4,29 +4,29 @@ import config from "../config/config.js";
 const secret = config.jwt_secret;
 
 export function generateToken(user) {
-  if (!user._id || !user.email || !user.role) {
+  if (!user.id || !user.email || !user.role) {
     throw new Error("Invalid user object for token generation");
   }
 
   return jwt.sign(
     {
-      id: user._id,
+      id: user.id,
       email: user.email,
       role: user.role,
     },
     secret,
-    { expiresIn: "1hr" }
+    { expiresIn: "1h" }
   );
 }
 
 export function generateRefreshToken(user) {
-  if (!user._id || !user.email || !user.role) {
+  if (!user.id || !user.email || !user.role) {
     throw new Error("Invalid user object for token generation");
   }
 
   return jwt.sign(
     {
-      id: user._id,
+      id: user.id,
       email: user.email,
       role: user.role,
     },
@@ -38,8 +38,9 @@ export function generateRefreshToken(user) {
 export function verifyRefreshToken(token) {
   try {
     const decoded = jwt.verify(token, secret);
-    return { valid: true, decoded };
+    return decoded;
   } catch (error) {
-    return { valid: false, error: error.message };
+    console.error("Refresh token verify failed:", error.message);
+    return null;
   }
 }
